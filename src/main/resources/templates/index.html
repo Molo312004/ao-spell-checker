@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Ao Spell Checker</title>
+    <style>
+        body { font-family: sans-serif; padding: 2rem; }
+        button { margin: 0.5rem; padding: 0.5rem 1rem; }
+    </style>
+</head>
+<body>
+    <h2>Ao Spell Checker</h2>
+
+    <p><strong>Current Word:</strong> <span id="word">Loading...</span></p>
+    <p><strong>Words Left:</strong> <span id="count">Loading...</span></p>
+
+    <div>
+        <button onclick="sendAction('yes')">Yes</button>
+        <button onclick="sendAction('no')">No</button>
+        <button onclick="sendAction('undo')">Undo</button>
+    </div>
+
+    <p id="status" style="color: green;"></p>
+
+    <script>
+        async function loadWord() {
+            const wordRes = await fetch('/words/current');
+            const word = await wordRes.text();
+            document.getElementById('word').textContent = word;
+
+            const countRes = await fetch('/words/remaining');
+            const count = await countRes.text();
+            document.getElementById('count').textContent = count;
+        }
+
+        async function sendAction(action) {
+            const res = await fetch('/words/respond?action=' + action, { method: 'POST' });
+            const msg = await res.text();
+            document.getElementById('status').textContent = msg;
+            loadWord();
+        }
+
+        loadWord();
+    </script>
+</body>
+</html>
