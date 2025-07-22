@@ -1,26 +1,20 @@
-# --- Use a custom OpenJDK 24 image for building ---
-FROM openjdk:24-ea-slim AS build
+# Stage 1: Build the app using Maven and Java 24
+FROM maven:3.9.4-eclipse-temurin-24 AS build
 
 WORKDIR /app
-
-# Install Maven manually since we’re not using a Maven base image
-RUN apt-get update && apt-get install -y maven
-
-# Copy project files
 COPY pom.xml .
 COPY src ./src
 
-# Build the project (skip tests)
 RUN mvn clean package -DskipTests
 
-# --- Use same image for final container ---
-FROM openjdk:24-ea-slim
+# Stage 2: Run the app using Java 24
+FROM eclipse-temurin:24-jdk
 
 WORKDIR /app
 
-# Copy built JAR from build stage
-COPY --from=build /app/target/ao-spell-checker-0.0.1-SNAPSHOT.jar app.jar
+# Use the correct JAR name from the Maven build
+COPY --from=build /app/target/Ao-SpellChecker-0.0.1-SNAPSHOT.jar app.jar
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+CMD ["java", "-jar", "app.jar"]
