@@ -1,0 +1,1 @@
+java -jar target/ao-spell-checker-0.0.1-SNAPSHOT.jar
