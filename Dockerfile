@@ -1,24 +1,11 @@
-# Start with a Maven image that includes JDK 24 (must be a custom or bleeding-edge image if not yet officially supported)
-FROM eclipse-temurin:24-jdk AS builder
-
+FROM maven:3.9.6-eclipse-temurin-21 AS builder
 WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests
 
-# Copy everything
-COPY . .
-
-# Make mvnw executable if you're using the Maven wrapper
-RUN chmod +x ./mvnw
-
-# Build the app (skip tests to save time in Docker builds)
-RUN ./mvnw clean package -DskipTests
-
-# Second stage - run the app in a smaller JDK runtime image
-FROM eclipse-temurin:24-jdk
-
+FROM eclipse-temurin:21-jdk-jammy
 WORKDIR /app
-
-# Copy built JAR from builder stage
 COPY --from=builder /app/target/*.jar app.jar
-
-# Run the application
+COPY data /app/data
 ENTRYPOINT ["java", "-jar", "app.jar"]
