@@ -4,6 +4,7 @@ FROM maven:3.9.4-eclipse-temurin-21 AS build
 WORKDIR /app
 COPY pom.xml .
 COPY src ./src
+COPY data ./data   
 
 RUN mvn clean package -DskipTests
 
@@ -11,8 +12,8 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:24-jdk
 
 WORKDIR /app
-COPY --from=build /app/target/app.jar app.jar
-
+COPY --from=build /app/target/*.jar app.jar
+COPY --from=build /app/data ./data   
 
 EXPOSE 8080
 CMD ["java", "-jar", "app.jar"]
