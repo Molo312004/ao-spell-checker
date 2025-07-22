@@ -1,14 +1,12 @@
-# Use official lightweight Java image
-FROM openjdk:17-jdk-slim
-
-# Set working directory
+# Use Maven to build the application
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /app
+COPY . .
+RUN mvn clean package -DskipTests
 
-# Copy the jar file from build context into the image
-COPY target/ao-spell-checker-0.0.1-SNAPSHOT.jar app.jar
-
-# Expose port (optional, helpful for local testing)
+# Use a smaller JDK image for running the app
+FROM openjdk:17-jdk-slim
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
-
-# Run the jar file
 ENTRYPOINT ["java", "-jar", "app.jar"]
