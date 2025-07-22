@@ -9,8 +9,8 @@ import java.util.*;
 @Service
 public class WordService {
 
-    private static final String INPUT_FILE = "D:\\Projects\\Ao-SpellChecker\\data\\Unif2.txt";
-    private static final String DELETED_FILE = "D:\\Projects\\Ao-SpellChecker\\data\\deletedWords.txt";
+    private static final String INPUT_FILE = "data/Unif2.txt";
+    private static final String DELETED_FILE = "data/deletedWords.txt";
 
     private List<String> lines;
     private int pointer;
