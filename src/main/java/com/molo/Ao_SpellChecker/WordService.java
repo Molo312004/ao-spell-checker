@@ -11,13 +11,14 @@ public class WordService {
 
     private static final String INPUT_FILE = "data/Unif2.txt";
     private static final String DELETED_FILE = "data/deletedWords.txt";
+    private static final String POINTER_FILE = "data/pointer.txt";
 
     private List<String> lines;
     private int pointer;
 
     public WordService() throws IOException {
         this.lines = new ArrayList<>(Files.readAllLines(Paths.get(INPUT_FILE)));
-        this.pointer = lines.size() - 1; // Start from the last line
+        this.pointer = loadPointer();
     }
 
     public String getCurrentWord() {
@@ -27,6 +28,7 @@ public class WordService {
                 return currentLine;
             }
             pointer--;
+            savePointer();
         }
         return null;
     }
@@ -58,6 +60,7 @@ public class WordService {
                 return "Invalid input. Use yes / no / undo.";
         }
 
+        savePointer();
         writeToFile();
         return "OK";
     }
@@ -107,5 +110,26 @@ public class WordService {
 
         Files.write(path, deletedLines); // update deletedWords.txt
         return word;
+    }
+
+    private int loadPointer() {
+        try {
+            Path path = Paths.get(POINTER_FILE);
+            if (Files.exists(path)) {
+                String val = Files.readString(path).trim();
+                return Integer.parseInt(val);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return lines.size() - 1;
+    }
+
+    private void savePointer() {
+        try {
+            Files.writeString(Paths.get(POINTER_FILE), String.valueOf(pointer));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

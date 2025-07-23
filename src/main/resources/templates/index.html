@@ -21,6 +21,17 @@
 
     <p id="status" style="color: green;"></p>
 
+    <!-- ✅ Download buttons section -->
+    <div style="margin-top: 2rem;">
+        <h3>Download Files</h3>
+        <a href="/words/download/Unif2.txt" download>
+            <button>Download Unif2.txt</button>
+        </a>
+        <a href="/words/download/deletedWords.txt" download>
+            <button>Download deletedWords.txt</button>
+        </a>
+    </div>
+
     <script>
         async function loadWord() {
             const wordRes = await fetch('/words/current');

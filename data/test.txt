@@ -1,6 +1,10 @@
 my
-name
- 
+name 
+is 
 molo
- 
-a test
+delete
+this
+is 
+my
+delete
+book
