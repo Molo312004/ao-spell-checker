@@ -1,14 +1,14 @@
 package com.molo.Ao_SpellChecker;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
-import java.nio.file.*;
+import java.io.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/words")
@@ -19,20 +19,26 @@ public class WordController {
 
     @GetMapping("/remaining")
     public int getRemainingCount() {
-        return wordService.getRemainingLineCount();
+        try {
+            return wordService.getRemainingWordCount();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        }
     }
 
     @GetMapping("/")
     public String homePage() {
-        return "index"; // loads index.html from templates
+        return "index";
     }
 
     @GetMapping("/current")
     public String getCurrentWord() {
-        if (wordService.isFinished()) {
-            return "Finished processing all words.";
+        try {
+            return wordService.getCurrentWord();
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
         }
-        return wordService.getCurrentWord();
     }
 
     @PostMapping("/respond")
@@ -44,16 +50,25 @@ public class WordController {
         }
     }
 
-    // ✅ Download endpoint for Unif2.txt and deletedWords.txt
-    @GetMapping("/download/{filename}")
-    public ResponseEntity<Resource> downloadFile(@PathVariable String filename) throws IOException {
-        Path path = Paths.get("data", filename);
-        if (!Files.exists(path)) {
-            return ResponseEntity.notFound().build();
+    @GetMapping("/download/{tableName}")
+    public ResponseEntity<InputStreamResource> downloadWords(@PathVariable String tableName) throws IOException {
+        try {
+            List<String> words = wordService.getWordsFromTable(tableName);
+            File tempFile = File.createTempFile(tableName, ".txt");
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
+                for (String word : words) {
+                    writer.write(word);
+                    writer.newLine();
+                }
+            }
+
+            InputStreamResource resource = new InputStreamResource(new FileInputStream(tempFile));
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + tableName + ".txt")
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(resource);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate download file: " + e.getMessage());
         }
-        Resource file = new UrlResource(path.toUri());
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getFilename() + "\"")
-                .body(file);
     }
 }

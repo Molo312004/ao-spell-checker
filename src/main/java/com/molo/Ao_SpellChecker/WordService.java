@@ -2,134 +2,151 @@ package com.molo.Ao_SpellChecker;
 
 import org.springframework.stereotype.Service;
 
-import java.io.*;
-import java.nio.file.*;
+import java.sql.*;
 import java.util.*;
+import java.io.*;
 
 @Service
 public class WordService {
 
-    private static final String INPUT_FILE = "data/Unif2.txt";
-    private static final String DELETED_FILE = "data/deletedWords.txt";
-    private static final String POINTER_FILE = "data/pointer.txt";
+    private final Connection conn;
 
-    private List<String> lines;
-    private int pointer;
+    public WordService() throws SQLException {
+        String url = "jdbc:postgresql://dpg-d21sva2dbo4c73ejphg0-a.singapore-postgres.render.com/ao_spellings";
+        String user = "root";
+        String password = "6sx0ZUtGD0izS9Gwesj35pwSQ0Gv8XHp";
 
-    public WordService() throws IOException {
-        this.lines = new ArrayList<>(Files.readAllLines(Paths.get(INPUT_FILE)));
-        this.pointer = loadPointer();
+        this.conn = DriverManager.getConnection(url, user, password);
     }
 
-    public String getCurrentWord() {
-        while (pointer >= 0) {
-            String currentLine = lines.get(pointer).trim();
-            if (!currentLine.isEmpty()) {
-                return currentLine;
+    public String getCurrentWord() throws SQLException {
+        String sql = "SELECT id, word FROM words ORDER BY id DESC LIMIT 1";
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                return rs.getString("word");
             }
-            pointer--;
-            savePointer();
         }
         return null;
     }
 
-    public String respond(String input) throws IOException {
+    public String respond(String input) throws SQLException {
         input = input.trim().toLowerCase();
+        String currentWord = getCurrentWord();
+        if (currentWord == null) return "No words remaining.";
 
         switch (input) {
             case "yes":
-                pointer--;
-                break;
-
+                moveWord(currentWord, "verified_ao_words");
+                return "Moved to verified words.";
             case "no":
-                saveDeletedWord(pointer, lines.get(pointer));
-                lines.set(pointer, " "); // Replace with space
-                writeToFile();
-                pointer--;
-                break;
-
+                moveWord(currentWord, "deleted_ao_words");
+                return "Moved to deleted words.";
             case "undo":
-                String restored = undoDelete();
-                if (restored != null) {
-                    writeToFile();
-                    return "Restored: " + restored;
-                }
-                return "Nothing to undo.";
-
+                return undoLastDelete();
             default:
                 return "Invalid input. Use yes / no / undo.";
         }
-
-        savePointer();
-        writeToFile();
-        return "OK";
     }
 
-    public boolean isFinished() {
-        return pointer < 0;
-    }
-
-    public int getRemainingLineCount() {
-        int count = 0;
-        for (int i = pointer; i >= 0; i--) {
-            if (!lines.get(i).trim().isEmpty()) {
-                count++;
+    public boolean isFinished() throws SQLException {
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM words")) {
+            if (rs.next()) {
+                return rs.getInt(1) == 0;
             }
         }
-        return count;
+        return true;
     }
 
-    private void writeToFile() throws IOException {
-        Files.write(Paths.get(INPUT_FILE), lines);
-    }
-
-    private void saveDeletedWord(int index, String word) throws IOException {
-        BufferedWriter writer = new BufferedWriter(new FileWriter(DELETED_FILE, true));
-        writer.write(index + "|" + word);
-        writer.newLine();
-        writer.close();
-    }
-
-    private String undoDelete() throws IOException {
-        Path path = Paths.get(DELETED_FILE);
-        if (!Files.exists(path)) return null;
-
-        List<String> deletedLines = new ArrayList<>(Files.readAllLines(path));
-        if (deletedLines.isEmpty()) return null;
-
-        String lastEntry = deletedLines.remove(deletedLines.size() - 1);
-        String[] parts = lastEntry.split("\\|");
-        if (parts.length != 2) return null;
-
-        int index = Integer.parseInt(parts[0]);
-        String word = parts[1];
-
-        if (index >= 0 && index < lines.size()) {
-            lines.set(index, word);
+    public int getRemainingWordCount() throws SQLException {
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM words")) {
+            if (rs.next()) return rs.getInt(1);
         }
-
-        Files.write(path, deletedLines); // update deletedWords.txt
-        return word;
+        return 0;
     }
 
-    private int loadPointer() {
-        try {
-            Path path = Paths.get(POINTER_FILE);
-            if (Files.exists(path)) {
-                String val = Files.readString(path).trim();
-                return Integer.parseInt(val);
+    public List<String> getWordsFromTable(String tableName) throws SQLException {
+        List<String> words = new ArrayList<>();
+        String sql = "SELECT word FROM " + tableName + " ORDER BY id";
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                words.add(rs.getString("word"));
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
-        return lines.size() - 1;
+        return words;
     }
 
-    private void savePointer() {
+    private void moveWord(String word, String targetTable) throws SQLException {
+        conn.setAutoCommit(false);
         try {
-            Files.writeString(Paths.get(POINTER_FILE), String.valueOf(pointer));
-        } catch (IOException e) {
-            e.printStackTrace();
+            String insertSQL = "INSERT INTO " + targetTable + "(word) VALUES (?) ON CONFLICT DO NOTHING";
+            try (PreparedStatement ps = conn.prepareStatement(insertSQL)) {
+                ps.setString(1, word);
+                ps.executeUpdate();
+            }
+
+            String deleteSQL = "DELETE FROM words WHERE word = ?";
+            try (PreparedStatement ps = conn.prepareStatement(deleteSQL)) {
+                ps.setString(1, word);
+                ps.executeUpdate();
+            }
+
+            conn.commit();
+        } catch (SQLException e) {
+            conn.rollback();
+            throw e;
+        } finally {
+            conn.setAutoCommit(true);
+        }
+    }
+
+    private String undoLastDelete() throws SQLException {
+        conn.setAutoCommit(false);
+        try {
+            String sql = "SELECT id, word FROM deleted_ao_words ORDER BY id DESC LIMIT 1";
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(sql)) {
+                if (rs.next()) {
+                    int id = rs.getInt("id");
+                    String word = rs.getString("word");
+
+                    String insertSQL = "INSERT INTO words(word) VALUES (?) ON CONFLICT DO NOTHING";
+                    try (PreparedStatement ps = conn.prepareStatement(insertSQL)) {
+                        ps.setString(1, word);
+                        ps.executeUpdate();
+                    }
+
+                    String deleteSQL = "DELETE FROM deleted_ao_words WHERE id = ?";
+                    try (PreparedStatement ps = conn.prepareStatement(deleteSQL)) {
+                        ps.setInt(1, id);
+                        ps.executeUpdate();
+                    }
+
+                    conn.commit();
+                    return "Restored: " + word;
+                }
+            }
+        } catch (SQLException e) {
+            conn.rollback();
+            throw e;
+        } finally {
+            conn.setAutoCommit(true);
+        }
+        return "Nothing to undo.";
+    }
+
+    public void downloadTableToFile(String tableName, String filePath) throws SQLException, IOException {
+        String sql = "SELECT word FROM " + tableName + " ORDER BY id";
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql);
+             BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
+            while (rs.next()) {
+                writer.write(rs.getString("word"));
+                writer.newLine();
+            }
         }
     }
 }
