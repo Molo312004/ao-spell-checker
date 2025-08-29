@@ -1,59 +1,198 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Ao Spell Checker</title>
-    <style>
-        body { font-family: sans-serif; padding: 2rem; }
-        button { margin: 0.5rem; padding: 0.5rem 1rem; }
-    </style>
+  <title>Ao Spell Checker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 1.5rem;
+      background: #f9fafb;
+      color: #111827;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-size: 2rem;
+      font-weight: bold;
+      color: #2563eb;
+    }
+
+    .card {
+      background: white;
+      padding: 2rem;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      max-width: 500px;
+      margin: auto;
+      text-align: center;
+    }
+
+    /* ✅ Circle counters */
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .circle {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .circle span {
+      font-size: 1.2rem;
+    }
+    .circle p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #374151;
+    }
+    .blue {
+      background: #dbeafe;
+      color: #1e3a8a;
+    }
+    .red {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    /* ✅ Buttons */
+    .buttons {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.8rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+    button {
+      flex: 1;
+      padding: 0.9rem;
+      font-size: 1.1rem;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 0.15s ease, background 0.2s ease;
+    }
+    button:active {
+      transform: scale(0.96);
+    }
+    .yes { background: #22c55e; color: white; }
+    .yes:hover { background: #16a34a; }
+    .no { background: #ef4444; color: white; }
+    .no:hover { background: #dc2626; }
+    .undo { background: #facc15; color: #111827; }
+    .undo:hover { background: #eab308; }
+
+    /* ✅ Status text */
+    #status {
+      margin-top: 1rem;
+      font-weight: bold;
+      color: #059669;
+    }
+
+    /* ✅ Download section */
+    .downloads {
+      margin-top: 2rem;
+    }
+    .downloads h3 {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      color: #374151;
+    }
+    .downloads a {
+      text-decoration: none;
+    }
+    .downloads button {
+      background: #3b82f6;
+      color: white;
+      font-size: 1rem;
+      margin: 0.3rem;
+    }
+    .downloads button:hover {
+      background: #2563eb;
+    }
+
+    /* ✅ Responsive for small screens */
+    @media (max-width: 420px) {
+      .stats {
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .buttons {
+        flex-direction: column;
+      }
+      button {
+        flex: none;
+        width: 100%;
+      }
+    }
+  </style>
 </head>
 <body>
-    <h2>Ao Spell Checker</h2>
+  <h2>Ao Spell Checker</h2>
 
-    <p><strong>Current Word:</strong> <span id="word">Loading...</span></p>
-    <p><strong>Words Left:</strong> <span id="count">Loading...</span></p>
-
-    <div>
-        <button onclick="sendAction('yes')">Yes</button>
-        <button onclick="sendAction('no')">No</button>
-        <button onclick="sendAction('undo')">Undo</button>
+  <div class="card">
+    <!-- ✅ Circle counters -->
+    <div class="stats">
+      <div class="circle blue">
+        <span id="word">Loading...</span>
+        <p>Current</p>
+      </div>
+      <div class="circle red">
+        <span id="count">0</span>
+        <p>Left</p>
+      </div>
     </div>
 
-    <p id="status" style="color: green;"></p>
-
-    <!-- ✅ Download buttons section -->
-    <div style="margin-top: 2rem;">
-        <h3>Download Words</h3>
-        <a href="/words/download/words" download>
-            <button>Download Current Words</button>
-        </a>
-        <a href="/words/download/verified_ao_words" download>
-            <button>Download Verified Words</button>
-        </a>
-        <a href="/words/download/deleted_ao_words" download>
-            <button>Download Deleted Words</button>
-        </a>
+    <!-- ✅ Action buttons -->
+    <div class="buttons">
+      <button class="yes" onclick="sendAction('yes')">✔ Yes</button>
+      <button class="no" onclick="sendAction('no')">✘ No</button>
+      <button class="undo" onclick="sendAction('undo')">↩ Undo</button>
     </div>
 
-    <script>
-        async function loadWord() {
-            const wordRes = await fetch('/words/current');
-            const word = await wordRes.text();
-            document.getElementById('word').textContent = word;
+    <p id="status"></p>
 
-            const countRes = await fetch('/words/remaining');
-            const count = await countRes.text();
-            document.getElementById('count').textContent = count;
-        }
+    <!-- ✅ Download buttons -->
+    <div class="downloads">
+      <h3>Download Words</h3>
+      <a href="/words/download/words" download><button>📥 Current Words</button></a>
+      <a href="/words/download/verified_ao_words" download><button>📥 Verified Words</button></a>
+      <a href="/words/download/deleted_ao_words" download><button>📥 Deleted Words</button></a>
+    </div>
+  </div>
 
-        async function sendAction(action) {
-            const res = await fetch('/words/respond?action=' + action, { method: 'POST' });
-            const msg = await res.text();
-            document.getElementById('status').textContent = msg;
-            loadWord();
-        }
+  <script>
+    async function loadWord() {
+      const wordRes = await fetch('/words/current');
+      const word = await wordRes.text();
+      document.getElementById('word').textContent = word;
 
-        loadWord();
-    </script>
+      const countRes = await fetch('/words/remaining');
+      const count = await countRes.text();
+      document.getElementById('count').textContent = count;
+    }
+
+    async function sendAction(action) {
+      const res = await fetch('/words/respond?action=' + action, { method: 'POST' });
+      const msg = await res.text();
+      document.getElementById('status').textContent = msg;
+      loadWord();
+    }
+
+    loadWord();
+  </script>
 </body>
 </html>
