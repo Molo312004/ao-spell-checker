@@ -31,7 +31,19 @@
       text-align: center;
     }
 
-    /* ✅ Circle counters */
+    /* ✅ Current word box */
+    .current-word {
+      background: #eef2ff;
+      color: #1e3a8a;
+      font-size: 1.5rem;
+      font-weight: bold;
+      padding: 1rem;
+      border-radius: 10px;
+      margin-bottom: 1.5rem;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    /* ✅ Stats for remaining only */
     .stats {
       display: flex;
       justify-content: center;
@@ -57,10 +69,6 @@
       margin: 0;
       font-size: 0.9rem;
       color: #374151;
-    }
-    .blue {
-      background: #dbeafe;
-      color: #1e3a8a;
     }
     .red {
       background: #fee2e2;
@@ -128,6 +136,7 @@
     @media (max-width: 420px) {
       .stats {
         flex-direction: column;
+        align-items: center;   /* ✅ Center the circle on phones */
         gap: 1rem;
       }
       .buttons {
@@ -144,12 +153,11 @@
   <h2>Ao Spell Checker</h2>
 
   <div class="card">
-    <!-- ✅ Circle counters -->
+    <!-- ✅ Current Word Box -->
+    <div class="current-word" id="word">Loading...</div>
+
+    <!-- ✅ Only Words Left circle -->
     <div class="stats">
-      <div class="circle blue">
-        <span id="word">Loading...</span>
-        <p>Current</p>
-      </div>
       <div class="circle red">
         <span id="count">0</span>
         <p>Left</p>
