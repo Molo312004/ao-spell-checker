@@ -12,9 +12,10 @@ public class WordService {
     private final Connection conn;
 
     public WordService() throws SQLException {
-        String url = "jdbc:postgresql://dpg-d2okakvdiees73fhcd3g-a.singapore-postgres.render.com:5432/ao_spellings_8jbp?sslmode=require";
-        String user = "ao_spellings_8jbp_user";
-        String password = "4ut6Lf1SFh09Xjp5AOVFznirVaW3j470";
+        String url = "jdbc:postgresql://dpg-d4cp86idbo4c73dddfng-a.singapore-postgres.render.com:5432/ao_spellchecker?sslmode=require";
+        String user = "molo_user";
+        String password = "9vXkHBEUksHtHqdlPwyIfXK812BlZp1o";
+
 
         this.conn = DriverManager.getConnection(url, user, password);
     }
